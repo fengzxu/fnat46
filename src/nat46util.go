@@ -132,9 +132,9 @@ func dealPktIPv6NSonV6port(pkt *packet.Packet) {
 		return
 	}
 	pkt.ParseL4ForIPv6()
-	//taraddr := pkt.GetICMPv6NeighborSolicitationMessage().TargetAddr
+	taraddr := pkt.GetICMPv6NeighborSolicitationMessage().TargetAddr
 	packet.InitICMPv6NeighborAdvertisementPacket(pktAnswer, pkt.Ether.DAddr, pkt.Ether.SAddr,
-		pkt.GetIPv6NoCheck().DstAddr, pkt.GetIPv6NoCheck().SrcAddr)
+		taraddr, pkt.GetIPv6NoCheck().SrcAddr)
 	SetIPv6ICMPChecksum(pktAnswer)
 	pktAnswer.SendPacket(config.v6port)
 	log.Println("ok, retuen a NA pkt .")
@@ -148,8 +148,8 @@ func dealPktIPv6ToIPv4ICMP(pkt *packet.Packet) {
 }
 
 func dealPktIPv6ToIPv4UDP(pkt *packet.Packet) {
-	log.Println("got a UDP6 pkt from",
-		pkt.GetIPv6NoCheck().SrcAddr, "->", pkt.GetIPv6NoCheck().DstAddr)
+	//log.Println("got a UDP6 pkt :",
+	//	pkt.GetIPv6NoCheck().SrcAddr, "->", pkt.GetIPv6NoCheck().DstAddr)
 	newPkt := TranslateUDP6To4(pkt)
 	if newPkt != nil {
 		newPkt.SendPacket(config.v4port)
@@ -159,8 +159,8 @@ func dealPktIPv6ToIPv4UDP(pkt *packet.Packet) {
 }
 
 func dealPktIPv6ToIPv4TCP(pkt *packet.Packet) {
-	log.Println("got a TCP6 pkt from",
-		pkt.GetIPv6NoCheck().SrcAddr, "->", pkt.GetIPv6NoCheck().DstAddr)
+	//log.Println("got a TCP6 pkt :",
+	//	pkt.GetIPv6NoCheck().SrcAddr, "->", pkt.GetIPv6NoCheck().DstAddr)
 	newPkt := TranslateTCP6To4(pkt)
 	if newPkt != nil {
 		newPkt.SendPacket(config.v4port)
@@ -187,7 +187,7 @@ func dealPktNat46ArpRequest(pkt *packet.Packet) {
 	if arp == nil {
 		return
 	}
-	log.Println("dealPktNat46ArpRequest:", arp.SHA, arp.THA, arp.SPA, arp.TPA)
+	//log.Println("dealPktNat46ArpRequest:", arp.SHA, arp.THA, arp.SPA, arp.TPA)
 	nat46EN := getNatDst4To6(pkt)
 	if nat46EN == nil {
 		log.Println("get nat46EN on dealPktNat46ArpRequest nil!")
@@ -261,18 +261,18 @@ func answerICMPEchoReqForMe(pkt *packet.Packet) {
 }
 
 func dealPktIPv4ToIPv6EchoRequest(pkt *packet.Packet) {
-	log.Println("got a ICMP4 echo request pkt on ipv4 port,now translate 4->6...")
+	//log.Println("got a ICMP4 echo request pkt on ipv4 port,now translate 4->6...")
 	newPkt := TranslateIcmp4To6(pkt)
 	if newPkt != nil {
-		log.Println("TranslateIcmp4To6 :before(4):", pkt.GetIPv4NoCheck().SrcAddr, pkt.Ether.SAddr, pkt.GetIPv4NoCheck().DstAddr, pkt.Ether.DAddr)
-		log.Println("TranslateIcmp4To6 after(6):", newPkt.GetIPv6NoCheck().SrcAddr, newPkt.Ether.SAddr, newPkt.GetIPv6NoCheck().DstAddr, newPkt.Ether.DAddr)
+		//log.Println("TranslateIcmp4To6 :before(4):", pkt.GetIPv4NoCheck().SrcAddr, pkt.Ether.SAddr, pkt.GetIPv4NoCheck().DstAddr, pkt.Ether.DAddr)
+		//log.Println("TranslateIcmp4To6 after(6):", newPkt.GetIPv6NoCheck().SrcAddr, newPkt.Ether.SAddr, newPkt.GetIPv6NoCheck().DstAddr, newPkt.Ether.DAddr)
 		log.Println("now ,send the icmp6 echo to v6port.")
 		newPkt.SendPacket(config.v6port)
 	}
 }
 
 func dealPktIPv4ToIPv6EchoResponse(pkt *packet.Packet) {
-	log.Println("got a ICMP4 echo response pkt on ipv4 port")
+	//log.Println("got a ICMP4 echo response pkt on ipv4 port")
 
 	newPkt := TranslateIcmp4To6(pkt)
 	if newPkt != nil {
@@ -281,8 +281,8 @@ func dealPktIPv4ToIPv6EchoResponse(pkt *packet.Packet) {
 }
 
 func dealPktIPv4ToIPv6UDP(pkt *packet.Packet) {
-	log.Println("got a UDP4 pkt from",
-		pkt.GetIPv4NoCheck().SrcAddr, "->", pkt.GetIPv4NoCheck().DstAddr)
+	//log.Println("got a UDP4 pkt from",
+	//	pkt.GetIPv4NoCheck().SrcAddr, "->", pkt.GetIPv4NoCheck().DstAddr)
 	newPkt := TranslateUDP4To6(pkt)
 	log.Println("send the pkt..")
 	if newPkt != nil {
@@ -291,8 +291,8 @@ func dealPktIPv4ToIPv6UDP(pkt *packet.Packet) {
 }
 
 func dealPktIPv4ToIPv6TCP(pkt *packet.Packet) {
-	log.Println("got a TCP4 pkt from",
-		pkt.GetIPv4NoCheck().SrcAddr, "->", pkt.GetIPv4NoCheck().DstAddr)
+	//log.Println("got a TCP4 pkt from",
+	//	pkt.GetIPv4NoCheck().SrcAddr, "->", pkt.GetIPv4NoCheck().DstAddr)
 	newPkt := TranslateTCP4To6(pkt)
 	if newPkt != nil {
 		newPkt.SendPacket(config.v6port)
@@ -300,28 +300,7 @@ func dealPktIPv4ToIPv6TCP(pkt *packet.Packet) {
 }
 
 func dealPktIPv4ArpReply(pkt *packet.Packet) {
-	log.Println("got a arp reply.")
-
-	//nat46
-	//natEN := getNatDst4To6(pkt)
-	//
-	//if natEN == nil {
-	//	log.Println("<dealPktIPv4ArpReply> get natEN nil!")
-	//	return
-	//}
-	//log.Println("now update v4 mac to:", pkt.Ether.SAddr)
-	//natEN.v4NodeMAC = pkt.Ether.SAddr
-	////genarate a NA pkt to ipv6 client
-	//answerPacket, err := packet.NewPacket()
-	//if err != nil {
-	//	log.Println("generate new pkg error:", err.Error())
-	//	return
-	//}
-	//packet.InitICMPv6NeighborAdvertisementPacket(answerPacket, natEN.v4NodeMAC, natEN.v6NodeMAC,
-	//	natEN.v6DstIP, natEN.v6SrcIP)
-	//SetIPv6ICMPChecksum(answerPacket)
-	//answerPacket.SendPacket(config.v6port)
-	//log.Println("sent a NA pkt.")
+	//log.Println("got a arp reply.")
 }
 
 func getNatDst6To4(pkt *packet.Packet) *Nat64TableEntity {
@@ -331,33 +310,24 @@ func getNatDst6To4(pkt *packet.Packet) *Nat64TableEntity {
 
 	switch ipv6hrd.Proto {
 	case types.TCPNumber:
-		//v4srcPort = pkt.GetTCPForIPv6().SrcPort
 		v6srcPort = pkt.GetTCPForIPv6().SrcPort
-		//v6dstIP = ipv6hrd.DstAddr
-		//v6dstPort = pkt.GetTCPForIPv6().DstPort
 	case types.UDPNumber:
-		//v4srcPort = pkt.GetUDPForIPv6().SrcPort
 		v6srcPort = pkt.GetUDPForIPv6().SrcPort
-		//v6dstIP = ipv6hrd.DstAddr
-		//v6dstPort = pkt.GetUDPForIPv6().DstPort
 	case types.ICMPv6Number:
-		//v4srcPort = 0
 		v6srcPort = 0
-		//v6dstIP = ipv6hrd.DstAddr
-		//v6dstPort = 0
 	}
 	//now search nat46 using
 	var newEN *Nat64TableEntity
 	v6hash = CalculatePktHash(int(ipv6hrd.Proto), ipv6hrd.SrcAddr.String(), packet.SwapBytesUint16(v6srcPort))
-	log.Println("search tcp/udp/icmp entity for v6hash:", v6hash)
+	//log.Println("search tcp/udp/icmp entity for v6hash:", v6hash)
 	newENObj, found := nat46Table.Load(v6hash)
 	if found {
-		log.Println("ok, found it.")
+		//log.Println("ok, found it.")
 		newEN = newENObj.(*Nat64TableEntity)
 		newEN.lastTime = time.Now()
 		return newEN
 	} else {
-		log.Println("not found ,abort!")
+		//log.Println("not found ,abort!")
 		return nil
 	}
 }
@@ -382,7 +352,7 @@ func getNatDst4To6(pkt *packet.Packet) *Nat64TableEntity {
 			v4hash = CalculatePktHash(types.ICMPv6Number, ipv4.SrcAddr.String(), 0)
 		}
 	}
-	log.Println("<getNatDst4To6> search for v4hash:", v4hash)
+	//log.Println("<getNatDst4To6> search for v4hash:", v4hash)
 	nat46EN, ok := nat46Table.Load(v4hash)
 	//}
 	if ok {
@@ -446,12 +416,12 @@ func getNatDst4To6(pkt *packet.Packet) *Nat64TableEntity {
 				lastTime:  time.Now(),
 			}
 			//save
-			log.Println("new tcp/udp/icmp nat64entity.")
-			log.Println("save v4hash:", v4hash)
+			//log.Println("new tcp/udp/icmp nat64entity.")
+			//log.Println("save v4hash:", v4hash)
 			nat46Table.Store(v4hash, newEN)
 			//on v4nat64table ,treat arp/icmp type as types.ICMPv6Number. type TCP/UDP are the same code.
 			v6hash := CalculatePktHash(int(ipv4.NextProtoID), newEN.v6DstIP.String(), newEN.v6DstPort)
-			log.Println("and v6hash:", v6hash)
+			//log.Println("and v6hash:", v6hash)
 			nat46Table.Store(v6hash, newEN)
 			//log.Println("stored v4 mac:", newEN.v4NodeMAC)
 			return newEN
@@ -502,13 +472,13 @@ func setupNewIcmpV4EN(pkt packet.Packet) *Nat64TableEntity {
 		v4DstPort: 0,
 		v4NodeMAC: pkt.Ether.SAddr,
 	}
-	log.Println("setupNewIcmpV4EN:", newEN)
+	//log.Println("setupNewIcmpV4EN:", newEN)
 	//save nat64 entity to both nat64table and nat46table
 	v4hash := CalculatePktHash(types.ICMPv6Number, v4SrcIP.String(), 0)
-	log.Println("v4hash:", v4hash)
+	//log.Println("v4hash:", v4hash)
 	nat46Table.Store(v4hash, newEN)
 	v6hash := CalculatePktHash(types.ICMPv6Number, ipv6Dst.String(), 0)
-	log.Println("v6hash:", v6hash)
+	//log.Println("v6hash:", v6hash)
 	nat46Table.Store(v6hash, newEN)
 	return newEN
 }
@@ -529,7 +499,7 @@ func isNat46TarIPv4(ipv4 types.IPv4Address) bool {
 remove expired Natdst6To4 and Natdst4To6 entity
 */
 func RemoveExpiredNatEntity() {
-	t := time.NewTicker(time.Duration(60 * time.Second))
+	t := time.NewTicker(time.Duration(10 * time.Minute))
 	defer t.Stop()
 	for {
 		<-t.C
@@ -539,8 +509,8 @@ func RemoveExpiredNatEntity() {
 }
 
 func doRemoveNatDst64(k interface{}, v interface{}) bool {
-	//expired in 60 seconds
-	if v.(*Nat64TableEntity).lastTime.Add(60 * time.Second).Before(time.Now()) {
+	//expired in 10 minutes
+	if v.(*Nat64TableEntity).lastTime.Add(10 * time.Minute).Before(time.Now()) {
 		log.Println("remove en with last time:", v.(*Nat64TableEntity).lastTime,
 			"on", time.Now())
 		nat64Table.Delete(k)
@@ -549,8 +519,8 @@ func doRemoveNatDst64(k interface{}, v interface{}) bool {
 }
 
 func doRemoveNatDst46(k interface{}, v interface{}) bool {
-	//expired in 60 seconds
-	if v.(*Nat64TableEntity).lastTime.Add(60 * time.Second).Before(time.Now()) {
+	//expired in 10 minutes
+	if v.(*Nat64TableEntity).lastTime.Add(10 * time.Minute).Before(time.Now()) {
 		log.Println("remove en with last time:", v.(*Nat64TableEntity).lastTime,
 			"on", time.Now())
 		nat46Table.Delete(k)
@@ -582,11 +552,6 @@ func doRemoveIPv4Dst(k, v interface{}) bool {
 	return true
 }
 
-//func getAviableIPv4DstStateLess(ipv6hdr *packet.IPv6Hdr) (ipv4 types.IPv4Address, port uint16, ok bool) {
-//	ok = false
-//	return
-//}
-
 func getNatIPv4FromIPv6(ipv6 types.IPv6Address) types.IPv4Address {
 	log.Println("getNatIPv4FromIPv6:", ipv6.String())
 	//for now, 6-4 rule is just take the last 4*8 bit
@@ -604,13 +569,14 @@ func getNatIPv6FromIPv4(ipv4 types.IPv4Address) types.IPv6Address {
 	return ipv6Addr
 }
 
-func isV4ipINV4Array(ips []types.IPv4Address, ip types.IPv4Address) bool {
-	found := false
-	for _, tip := range ips {
-		if tip == ip {
-			found = true
-			break
-		}
-	}
-	return found
-}
+//
+//func isV4ipINV4Array(ips []types.IPv4Address, ip types.IPv4Address) bool {
+//	found := false
+//	for _, tip := range ips {
+//		if tip == ip {
+//			found = true
+//			break
+//		}
+//	}
+//	return found
+//}

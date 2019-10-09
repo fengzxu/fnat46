@@ -193,8 +193,8 @@ func TranslateIcmp6To4(pkt *packet.Packet) *packet.Packet {
 		log.Println("<TranslateIcmp6To4> got icmpentity nil.")
 		return nil
 	}
-	log.Println("<TranslateIcmp6To4>,pkt:", ipv6.SrcAddr, ipv6.DstAddr)
-	log.Println("<TranslateIcmp6To4> en:", naten)
+	//log.Println("<TranslateIcmp6To4>,pkt:", ipv6.SrcAddr, ipv6.DstAddr)
+	//log.Println("<TranslateIcmp6To4> en:", naten)
 	pllen := int(packet.SwapBytesUint16(ipv6.PayloadLen)) - types.ICMPLen
 	newPkt, err := packet.NewPacket()
 	if err != nil {
@@ -266,6 +266,7 @@ func TranslateTCP6To4(pkt *packet.Packet) *packet.Packet {
 		log.Println("<TranslateTCP6To4> got icmpentity nil.")
 		return nil
 	}
+	//log.Println("<TranslateTCP6To4> found en:\n", naten)
 	pllen := int(packet.SwapBytesUint16(ipv6.PayloadLen)) - types.TCPMinLen
 	newPkt, err := packet.NewPacket()
 	if err != nil {
@@ -277,15 +278,15 @@ func TranslateTCP6To4(pkt *packet.Packet) *packet.Packet {
 	newPkt.ParseData()
 	//L2
 	l2 := newPkt.Ether
-	l2.DAddr = naten.v4NodeMAC
 	l2.SAddr = naten.v6NodeMAC
+	l2.DAddr = naten.v4NodeMAC
 	l2.EtherType = types.SwapIPV4Number
 	//L3
 	l3 := newPkt.GetIPv4()
 	//l3.TypeOfService
 	l3.TimeToLive = ipv6.HopLimits
-	l3.SrcAddr = naten.v4SrcIP
-	l3.DstAddr = naten.v4DstIP
+	l3.SrcAddr = naten.v4DstIP
+	l3.DstAddr = naten.v4SrcIP
 	l3.FragmentOffset = 0
 
 	//set df flag
@@ -294,8 +295,8 @@ func TranslateTCP6To4(pkt *packet.Packet) *packet.Packet {
 	//L4
 	tcp6 := pkt.GetTCPForIPv6()
 	l4 := newPkt.GetTCPForIPv4()
-	l4.SrcPort = naten.v4SrcPort
-	l4.DstPort = naten.v4DstPort
+	l4.SrcPort = naten.v4DstPort
+	l4.DstPort = naten.v4SrcPort
 	l4.SentSeq = tcp6.SentSeq
 	l4.TCPFlags = tcp6.TCPFlags
 	l4.RecvAck = tcp6.RecvAck
@@ -306,9 +307,6 @@ func TranslateTCP6To4(pkt *packet.Packet) *packet.Packet {
 	allBytes := pkt.GetRawPacketBytes()
 	newPkt.PacketBytesChange(types.EtherLen+types.IPv4MinLen,
 		allBytes[types.EtherLen+types.IPv6Len:])
-
-	//replace srcport from original v6srcport to v4srcport
-	l4.SrcPort = naten.v4SrcPort
 
 	SetIPv4TCPChecksum(newPkt, true)
 
@@ -384,8 +382,8 @@ func TranslateIcmp4To6(pkt *packet.Packet) *packet.Packet {
 		log.Println("get naten on TranslateIcmp4To6 is nil. return.")
 		return nil
 	}
-	log.Println("en:", naten)
-	log.Println("now generate a icmp4->6 pkt...")
+	//log.Println("en:", naten)
+	//log.Println("now generate a icmp4->6 pkt...")
 	pllen := int(packet.SwapBytesUint16(ipv4.TotalLength)) - types.IPv4MinLen - types.ICMPLen
 	newPkt, err := packet.NewPacket()
 	if err != nil {
@@ -492,8 +490,8 @@ func TranslateTCP4To6(pkt *packet.Packet) *packet.Packet {
 	//L3
 	l3 := newPkt.GetIPv6NoCheck()
 	l3.HopLimits = ipv4.TimeToLive
-	l3.SrcAddr = naten.v6DstIP
-	l3.DstAddr = naten.v6SrcIP
+	l3.SrcAddr = naten.v6SrcIP
+	l3.DstAddr = naten.v6DstIP
 
 	//all bytes except min header
 	allBytes := pkt.GetRawPacketBytes()
@@ -503,8 +501,8 @@ func TranslateTCP4To6(pkt *packet.Packet) *packet.Packet {
 	//L4
 	tcp4 := pkt.GetTCPForIPv4()
 	l4 := newPkt.GetTCPForIPv6()
-	l4.SrcPort = naten.v6DstPort
-	l4.DstPort = naten.v6SrcPort
+	l4.SrcPort = packet.SwapBytesUint16(naten.v6SrcPort)
+	l4.DstPort = packet.SwapBytesUint16(naten.v6DstPort)
 	l4.SentSeq = tcp4.SentSeq
 	l4.TCPFlags = tcp4.TCPFlags
 	l4.RecvAck = tcp4.RecvAck
@@ -523,7 +521,7 @@ func TranslateUDP4To6(pkt *packet.Packet) *packet.Packet {
 		return nil
 	}
 	naten := getNatDst4To6(pkt)
-	log.Println("ok,get naten:\n", naten, "\nnow genarate TranslateUDP4To6 pkg ...")
+	//log.Println("ok,get naten:\n", naten, "\nnow genarate TranslateUDP4To6 pkg ...")
 	if naten == nil {
 		log.Println("get naten on TranslateUDP4To6 is nil. return.")
 		return nil
