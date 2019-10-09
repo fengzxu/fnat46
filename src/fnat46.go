@@ -8,32 +8,30 @@ import (
 	"github.com/intel-go/nff-go/types"
 	"log"
 	"net"
-	"strings"
 )
 
-var config *Nat64Config
+var config *Nat46Config
 
 func main() {
 
 	v6port := flag.Uint("v6port", 0, "port for receiver and send pkt in IPv6.")
 	v4port := flag.Uint("v4port", 1, "port for receiver and send pkt in IPv4.")
-	v6pre := flag.String("v6pre", "6001:db8::", "IPv6 prefix to translate 6->4 ,end with '::' prefix len=96.")
+	v6pre := flag.String("v6pre", "6001:db8::", "IPv6 prefix to translate address ,end with '::' prefix len=96.")
 	v6ip := flag.String("v6ip", "6001:db8::10", "IPv6 address for port used by IPv6 .")
 	v4ip := flag.String("v4ip", "192.168.21.10", "IPv4 address for port used by IPv4 .")
-	v4pool := flag.String("v4pool", "192.168.21.50,192.168.21.51", "IPv4 address pool for nat64 .")
 	flag.Parse()
 
 	//init ports and mem
 	flow.CheckFatal(flow.SystemInit(nil))
 
 	//init nat64 config
-	initConfig(*v6port, *v4port, *v6pre, *v6ip, *v4ip, *v4pool)
+	initConfig(*v6port, *v4port, *v6pre, *v6ip, *v4ip)
 
 	//init nat64 v6-v4 nat table
-	initNat64Table()
+	initNat46Table()
 
 	//init nat46 v4-v6 nat table
-	initNat46()
+	initNat46Map()
 
 	//remove expired statefull ipv4Dst map to release aviable ipv4&&port resource
 	go RemoveExpiredIPv4Dst()
@@ -41,7 +39,7 @@ func main() {
 	//remove expired statefull nat64&&nat46 map to update new info about session
 	go RemoveExpiredNatEntity()
 
-	//now nat64
+	//now nat46
 	flowIPv6portIn, err := flow.SetReceiver(config.v6port)
 	flow.CheckFatal(err)
 	flow.CheckFatal(flow.SetHandler(flowIPv6portIn, hanFunV6portIn, nil))
@@ -55,8 +53,8 @@ func main() {
 	flow.CheckFatal(flow.SystemStart())
 }
 
-func initConfig(v6port, v4port uint, v6pre, v6ip, v4ip, v4pool string) {
-	config = &Nat64Config{
+func initConfig(v6port, v4port uint, v6pre, v6ip, v4ip string) {
+	config = &Nat46Config{
 		v6port:    uint16(v6port),
 		v6portMac: flow.GetPortMACAddress(0),
 		v6prefix:  IP2IPv6addr(net.ParseIP(v6pre).To16()),
@@ -64,10 +62,6 @@ func initConfig(v6port, v4port uint, v6pre, v6ip, v4ip, v4pool string) {
 		v4port:    uint16(v4port),
 		v4portMAC: flow.GetPortMACAddress(1),
 		v4ip:      IP2IPv4addr(net.ParseIP(v4ip)),
-	}
-	v4ips := strings.Split(v4pool, ",")
-	for _, ipv4 := range v4ips {
-		config.v4pool = append(config.v4pool, IP2IPv4addr(net.ParseIP(ipv4).To4()))
 	}
 	log.Println(config.String())
 }
@@ -112,7 +106,6 @@ func hanFunV6portIn(pkt *packet.Packet, context flow.UserContext) {
 			if bytes.Compare(ipv6.DstAddr[:12], config.v6prefix[:12]) == 0 {
 				log.Println("got a icmp6 echo response pkt.")
 				dealPktIPv6ToIPv4ICMP(pkt)
-				//log.Println("before send to port 2: ", pkt.GetIPv4().SrcAddr.String(), pkt.GetIPv4().DstAddr.String())
 			} else {
 				return
 			}
@@ -135,8 +128,7 @@ func hanFunV4portIn(pkt *packet.Packet, context flow.UserContext) {
 		case packet.ARPRequest:
 			//An arp request for me or ipv4 pool
 			tpaIPv4 := types.ArrayToIPv4(arp.TPA)
-			if tpaIPv4 == config.v4ip ||
-				isV4ipINV4Array(config.v4pool, tpaIPv4) {
+			if tpaIPv4 == config.v4ip {
 				answerPktIPv4ArpRequestForMe(pkt)
 			} else if isNat46TarIPv4(tpaIPv4) {
 				//An arp request for fake IPv4 on NAT46
@@ -165,22 +157,20 @@ func hanFunV4portIn(pkt *packet.Packet, context flow.UserContext) {
 					return
 				}
 			case types.ICMPTypeEchoResponse: //init from v6 port, got answer from v4 port
-				if isNat46TarIPv4(ipv4.DstAddr) || isV4ipINV4Array(config.v4pool, ipv4.DstAddr) {
+				if isNat46TarIPv4(ipv4.DstAddr) {
 					dealPktIPv4ToIPv6EchoResponse(pkt)
 				} else {
 					return
 				}
 			}
 		case types.TCPNumber:
-			if isNat46TarIPv4(ipv4.DstAddr) ||
-				isV4ipINV4Array(config.v4pool, ipv4.DstAddr) {
+			if isNat46TarIPv4(ipv4.DstAddr) {
 				dealPktIPv4ToIPv6TCP(pkt)
 			} else {
 				return
 			}
 		case types.UDPNumber:
-			if isNat46TarIPv4(ipv4.DstAddr) ||
-				isV4ipINV4Array(config.v4pool, ipv4.DstAddr) {
+			if isNat46TarIPv4(ipv4.DstAddr) {
 				dealPktIPv4ToIPv6UDP(pkt)
 			} else {
 				return

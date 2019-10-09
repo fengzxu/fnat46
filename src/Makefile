@@ -17,8 +17,8 @@ debug: | .set-debug all
 .check-downloads:
 	go mod download
 
-fnat64: Makefile fnat64.go util.go $(wildcard util/*.go)
-	go build $(GO_COMPILE_FLAGS) fnat46.go util.go
+fnat46: Makefile fnat46.go nat46util.go util.go $(wildcard util/*.go)
+	go build $(GO_COMPILE_FLAGS) fnat46.go nat46util.go util.go
 
 .PHONY: clean
 clean:
