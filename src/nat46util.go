@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"github.com/intel-go/nff-go/packet"
 	"github.com/intel-go/nff-go/types"
 	"log"
@@ -13,14 +12,9 @@ import (
 /**
 On NAT46 ,when IPv4 request a domain witch only have AAAA record from a DNS,
 the DNS (called DNS46 for now) return a fake IPv4 routed to translator.
-The fake IPv4 route rule must be add to IPv4 client router point to translater IPv4 .
-Rules can be stateless (according to address prefix) or
+The maped IPv4 route rule must be add to IPv4 client router point to translater IPv4 .
+Rules can be stateless (according to address prefix or config file) or
 stateful (ip pool that can be reused )
-
-For now ,for a simply example, use stateless 10.255.255.0/24.
-If use stateful ,add a timer action to remove expire 4-6.
-(route add 10.0.0.0/24 via translater IPv4)
-
 */
 
 var nat64Table, nat46Table, usedIPv4Port, ipNat46 sync.Map
@@ -31,9 +25,9 @@ func initNat46Table() {
 	nat46Table = sync.Map{}
 }
 
-func initNat46Map() {
-	ipNat46 = sync.Map{}
-}
+//func initNat46Map() {
+//	ipNat46 = sync.Map{}
+//}
 
 func answerICMP6EchoReq4Me(pkt *packet.Packet) {
 	answerPkg, err := packet.NewPacket()
@@ -69,60 +63,21 @@ func answerNS4Me(pkt *packet.Packet) {
 	answerPkg.SendPacket(config.V6port)
 }
 
-//func setupNewIcmp6EN(pkt *packet.Packet) *Nat64TableEntity {
-//	ipv6hrd := pkt.GetIPv6NoCheck()
-//	if ipv6hrd == nil {
-//		return nil
-//	}
-//	v6dstIP := ipv6hrd.DstAddr
-//	if pkt.GetICMPForIPv6() != nil && pkt.GetICMPForIPv6().Type == types.ICMPv6NeighborSolicitation {
-//		v6dstIP = pkt.GetICMPv6NeighborSolicitationMessage().TargetAddr
-//	}
-//	newIcmp6EN := &Nat64TableEntity{
-//		proto:     ipv6hrd.Proto,
-//		v6SrcIP:   ipv6hrd.SrcAddr,
-//		v6SrcPort: 0,
-//		v6DstIP:   v6dstIP,
-//		v6NodeMAC: pkt.Ether.SAddr,
-//		v6DstPort: 0,
-//		v4SrcIP:   config.V4ip,
-//		v4SrcPort: 0,
-//		v4NodeMAC: types.MACAddress{0, 0, 0, 0, 0, 0},
-//		v4DstIP:   getNatIPv4FromIPv6(v6dstIP),
-//		v4DstPort: 0,
-//		lastTime:  time.Now(),
-//	}
-//	log.Println("new icmp6 nat64entity.")
-//	//on v4nat64table ,treat arp/icmp type as types.ICMPv6Number. type TCP/UDP are the same code.
-//	v4hash := CalculatePktHash(int(types.ICMPv6Number), newIcmp6EN.v4DstIP.String(), 0)
-//	log.Println("save v4hash:", v4hash)
-//	nat46Table.Store(v4hash, newIcmp6EN)
-//	log.Println("stored v4 mac:", newIcmp6EN.v4NodeMAC)
-//	//is FE80 ? dont't save to nat64
-//	if isFE80Pkt(pkt) {
-//		newIcmp6EN.v6SrcIP = getNatIPv6FromIPv4(newIcmp6EN.v4DstIP)
-//	}
-//	v6hash := CalculatePktHash(int(types.ICMPv6Number), newIcmp6EN.v6SrcIP.String(), 0)
-//	nat64Table.Store(v6hash, newIcmp6EN)
-//	log.Println("save v6hash:", v6hash)
-//	return newIcmp6EN
-//}
-
 /**
 Send a new arp request to the ipv4 target to create the init NS/NA nat64 entify
 on first connect to ipv4 target without a NS/NA nat64 entify.
 to do that,store a new arpentity , send a arp request to the ipv4 target
 and waite for reply to update target mac.
 */
-func setupNewArpRequestForIPv4Target(srcMac types.MACAddress, srcIP, dstIP types.IPv4Address) bool {
-	arpPkg, err := packet.NewPacket()
-	if err != nil {
-		log.Println("generate new pkg error:", err.Error())
-		return false
-	}
-	packet.InitARPRequestPacket(arpPkg, srcMac, srcIP, dstIP)
-	return arpPkg.SendPacket(config.V4port)
-}
+//func setupNewArpRequestForIPv4Target(srcMac types.MACAddress, srcIP, dstIP types.IPv4Address) bool {
+//	arpPkg, err := packet.NewPacket()
+//	if err != nil {
+//		log.Println("generate new pkg error:", err.Error())
+//		return false
+//	}
+//	packet.InitARPRequestPacket(arpPkg, srcMac, srcIP, dstIP)
+//	return arpPkg.SendPacket(config.V4port)
+//}
 
 func dealPktIPv6NSonV6port(pkt *packet.Packet) {
 	log.Println("got a NS pkt for target")
@@ -231,10 +186,6 @@ func getNatIPv6fromMap(ipv4 types.IPv4Address) (types.IPv6Address, bool) {
 			return IP2IPv6addr(net.ParseIP(ipmap.V6)), true
 		}
 	}
-	//ipv6 := IP2IPv6addr(net.ParseIP("6001:db8::").To16())
-	//ipv6[15] = types.IPv4ToBytes(ipv4)[3]
-	//ipNat46.Store(ipv4.String(), ipv6)
-	//ipNat46.Store(ipv6.String(), ipv4)
 	return types.IPv6Address{}, false
 }
 
@@ -485,13 +436,13 @@ func setupNewIcmpV4EN(pkt packet.Packet) *Nat64TableEntity {
 }
 
 /**
-On NAT46,IPv4 port only deal with the special fake IPv4 .
-For now ,for a simply example, use 10.255.255.0/24 to compare.
+On NAT46,IPv4 port only deal with the special IPv4 in IPv6-IPv4 map .
 */
 func isNat46TarIPv4(ipv4 types.IPv4Address) bool {
-	ipbytes := types.IPv4ToBytes(ipv4)
-	if bytes.Compare(ipbytes[:3], net.ParseIP("10.255.255.0").To4()[:3]) == 0 {
-		return true
+	for _, ipmap := range config.Nat46maps {
+		if IP2IPv4addr(net.ParseIP(ipmap.V4).To4()) == ipv4 {
+			return true
+		}
 	}
 	return false
 }
@@ -553,15 +504,6 @@ func doRemoveIPv4Dst(k, v interface{}) bool {
 	return true
 }
 
-//func getNatIPv4FromIPv6(ipv6 types.IPv6Address) types.IPv4Address {
-//	log.Println("getNatIPv4FromIPv6:", ipv6.String())
-//	//for now, 6-4 rule is just take the last 4*8 bit
-//	ipv4Bytes := [4]byte{}
-//	copy(ipv4Bytes[:], ipv6[12:])
-//	log.Println("getNatIPv4FromIPv6:", types.ArrayToIPv4(ipv4Bytes))
-//	return types.ArrayToIPv4(ipv4Bytes)
-//}
-
 func getNatIPv6FromIPv4(ipv4 types.IPv4Address) types.IPv6Address {
 	//the rule is just ipv6 prefix plus ipv4
 	ipv6Addr := config.V6prefix
@@ -569,15 +511,3 @@ func getNatIPv6FromIPv4(ipv4 types.IPv4Address) types.IPv6Address {
 	copy(ipv6Addr[12:], ipv4Bytes[:])
 	return ipv6Addr
 }
-
-//
-//func isV4ipINV4Array(ips []types.IPv4Address, ip types.IPv4Address) bool {
-//	found := false
-//	for _, tip := range ips {
-//		if tip == ip {
-//			found = true
-//			break
-//		}
-//	}
-//	return found
-//}

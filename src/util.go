@@ -572,9 +572,9 @@ func TranslateUDP4To6(pkt *packet.Packet) *packet.Packet {
 	return newPkt
 }
 
-func isFE80Pkt(pkt *packet.Packet) bool {
-	if bytes.Compare(pkt.GetIPv6NoCheck().SrcAddr[:2], []byte{0xfe, 0x80}) == 0 {
-		return true
-	}
-	return false
-}
+//func isFE80Pkt(pkt *packet.Packet) bool {
+//	if bytes.Compare(pkt.GetIPv6NoCheck().SrcAddr[:2], []byte{0xfe, 0x80}) == 0 {
+//		return true
+//	}
+//	return false
+//}
