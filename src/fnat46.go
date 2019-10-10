@@ -17,16 +17,10 @@ var config *Nat46Config
 
 func main() {
 
-	//v6port := flag.Uint("V6port", 0, "port for receiver and send pkt in IPv6.")
-	//v4port := flag.Uint("V4port", 1, "port for receiver and send pkt in IPv4.")
-	//v6pre := flag.String("v6pre", "6001:db8::", "IPv6 prefix to translate address ,end with '::' prefix len=96.")
-	//v6ip := flag.String("V6ip", "6001:db8::10", "IPv6 address for port used by IPv6 .")
-	//v4ip := flag.String("V4ip", "192.168.21.10", "IPv4 address for port used by IPv4 .")
 	file := flag.String("c", "config.json", "nat46 config file.")
 	flag.Parse()
 
 	//init nat64 config
-	//initConfig(*v6port, *v4port, *v6pre, *v6ip, *v4ip)
 	flow.CheckFatal(initConfig(file))
 
 	//init ports and mem
@@ -74,19 +68,6 @@ func initConfig(filename *string) error {
 	log.Println(config)
 	return nil
 }
-
-//func initConfig(v6port, v4port uint, v6pre, v6ip, v4ip string) {
-//	config = &Nat46Config{
-//		V6port:    uint16(v6port),
-//		V6portMac: flow.GetPortMACAddress(0),
-//		V6prefix:  IP2IPv6addr(net.ParseIP(v6pre).To16()),
-//		V6ip:      IP2IPv6addr(net.ParseIP(v6ip)),
-//		V4port:    uint16(v4port),
-//		V4portMAC: flow.GetPortMACAddress(1),
-//		V4ip:      IP2IPv4addr(net.ParseIP(v4ip)),
-//	}
-//	log.Println(config.String())
-//}
 
 /**
 Deal with 6-4 pkt translate

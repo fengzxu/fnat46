@@ -25,10 +25,6 @@ func initNat46Table() {
 	nat46Table = sync.Map{}
 }
 
-//func initNat46Map() {
-//	ipNat46 = sync.Map{}
-//}
-
 func answerICMP6EchoReq4Me(pkt *packet.Packet) {
 	answerPkg, err := packet.NewPacket()
 	if err != nil {
@@ -62,22 +58,6 @@ func answerNS4Me(pkt *packet.Packet) {
 	SetIPv6ICMPChecksum(answerPkg)
 	answerPkg.SendPacket(config.V6port)
 }
-
-/**
-Send a new arp request to the ipv4 target to create the init NS/NA nat64 entify
-on first connect to ipv4 target without a NS/NA nat64 entify.
-to do that,store a new arpentity , send a arp request to the ipv4 target
-and waite for reply to update target mac.
-*/
-//func setupNewArpRequestForIPv4Target(srcMac types.MACAddress, srcIP, dstIP types.IPv4Address) bool {
-//	arpPkg, err := packet.NewPacket()
-//	if err != nil {
-//		log.Println("generate new pkg error:", err.Error())
-//		return false
-//	}
-//	packet.InitARPRequestPacket(arpPkg, srcMac, srcIP, dstIP)
-//	return arpPkg.SendPacket(config.V4port)
-//}
 
 func dealPktIPv6NSonV6port(pkt *packet.Packet) {
 	log.Println("got a NS pkt for target")
