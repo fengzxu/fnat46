@@ -13,13 +13,19 @@ import (
 )
 
 type Nat46Config struct {
-	v6port    uint16
-	v6portMac types.MACAddress
-	v6ip      types.IPv6Address
-	v6prefix  types.IPv6Address
-	v4port    uint16
-	v4portMAC types.MACAddress
-	v4ip      types.IPv4Address
+	V6port    uint16 `json:"v6port"`
+	V6portMac types.MACAddress
+	V6ip      types.IPv6Address `json:"v6ip"`
+	V6prefix  types.IPv6Address `json:"v6prefix"`
+	V4port    uint16            `json:"v4port"`
+	V4portMAC types.MACAddress
+	V4ip      types.IPv4Address `json:"v4ip"`
+	Nat46maps []Nat46IPMap      `json:"nat46maps"`
+}
+
+type Nat46IPMap struct {
+	V6 string `json:"v6"`
+	V4 string `json:"v4"`
 }
 
 type Nat64TableEntity struct {
@@ -47,11 +53,11 @@ func (en Nat64TableEntity) String() string {
 
 func (conf Nat46Config) Copy() interface{} {
 	return Nat46Config{
-		v6port:    0,
-		v6portMac: types.MACAddress{},
-		v6prefix:  types.IPv6Address{},
-		v4port:    0,
-		v4portMAC: types.MACAddress{},
+		V6port:    0,
+		V6portMac: types.MACAddress{},
+		V6prefix:  types.IPv6Address{},
+		V4port:    0,
+		V4portMAC: types.MACAddress{},
 	}
 }
 
@@ -63,8 +69,9 @@ func (conf Nat46Config) String() string {
 	return fmt.Sprintf("nat46 config:\n"+
 		"IPv6 port:\t%d\nIPv6 mac:\t%s\n"+
 		"IPv4 port:\t%d\nIPv4 mac:\t%s\n"+
-		"IPv6 prefix:\t%s\n",
-		conf.v6port, conf.v6portMac, conf.v4port, conf.v4portMAC, conf.v6prefix)
+		"IPv6 prefix:\t%s\n"+
+		"IPv6-IPv4 ipmaps:%v\n",
+		conf.V6port, conf.V6portMac, conf.V4port, conf.V4portMAC, conf.V6prefix, config.Nat46maps)
 }
 
 func IP2IPv6addr(ip net.IP) types.IPv6Address {
