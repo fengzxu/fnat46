@@ -1,3 +1,8 @@
+/* Copyright 2019 XUJF  xujf000@gmail.com
+Use of this source code is governed by a MIT
+license that can be found in the LICENSE file.
+*/
+
 package main
 
 import (
@@ -58,7 +63,7 @@ func initConfig(filename *string) error {
 	if err != nil {
 		return errors.New("Read config file failed:" + err.Error())
 	}
-	json.Unmarshal(bs, &config)
+	err = json.Unmarshal(bs, &config)
 	if err != nil {
 		return errors.New("Parse config file failed:" + err.Error())
 	}
