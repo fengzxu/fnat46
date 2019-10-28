@@ -2,11 +2,11 @@
 在当前IPv4单栈局域网内，客户端（PC端、手机端）通过有线或无线方式访问外部IPv6单栈网络资源。
 
 ### 整体思路
-![flow](https://github.com/fengzxu/fnat46/raw/master/images/flow.png "flow")
+![flow](https://gitee.com/xujf/fnat46/raw/master/images/flow.png "flow")
 局域网内终端接入协议转换网关，通过DNS46完成域名解析，对访问IPv6资源的网络请求通过NAT46协议转换设备完成协议转换（请求、响应），以完成全程网络会话。
 
 ### 流程时序
-![sequence](https://github.com/fengzxu/fnat46/raw/master/images/sequence.png "sequence")
+![sequence](https://gitee.com/xujf/fnat46/raw/master/images/sequence.png "sequence")
 1. IPv4客户端向域名服务器DNS46发起资源服务网络请求（A记录）；
 2. DNS46通过递归查询公网该服务域名的A记录。如果得到A记录，则返回给客户端，客户端继续使用A记录的IPv4完成网络请求；
 3. 如果DNS46查询到该域名只有AAAA记录，则表示该域名服务只提供了IPv6单栈服务，需要NAT46的转换服务；
